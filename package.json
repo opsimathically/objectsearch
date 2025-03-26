@@ -1,0 +1,41 @@
+{
+  "name": "@opsimathically/objectsearch",
+  "version": "1.0.1",
+  "description": "Recursively searches through runtime objects for keys and values, returning paths to found data. Supports a variety of search functionality, and is very useful for analyzing runtime data.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "test": "ts-node -r tsconfig-paths/register test/objectsearch.test.ts",
+    "docs": "typedoc"
+  },
+  "keywords": [
+    "object",
+    "search",
+    "runtime-data",
+    "callbacks"
+  ],
+  "homepage": "https://github.com/opsimathically/objectsearch",
+  "devDependencies": {
+    "@types/node": "^22.13.13",
+    "@types/wtfnode": "^0.7.3",
+    "esbuild": "^0.25.0",
+    "eslint": "^9.20.1",
+    "globals": "^15.14.0",
+    "prettier": "^3.5.0",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "tsup": "^8.3.6",
+    "typedoc": "^0.28.1",
+    "typedoc-plugin-markdown": "^4.6.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.0",
+    "wtfnode": "^0.10.0"
+  },
+  "author": "Jason Medeiros",
+  "license": "MIT",
+  "dependencies": {
+    "@opsimathically/whatis": "^1.0.1"
+  }
+}
