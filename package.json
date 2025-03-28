@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "test": "ts-node -r tsconfig-paths/register test/objectsearch.test.ts",
+    "example": "ts-node -r tsconfig-paths/register example/objectsearch.example.ts",
     "docs": "typedoc"
   },
   "keywords": [
@@ -36,6 +37,8 @@
   "author": "Jason Medeiros",
   "license": "MIT",
   "dependencies": {
-    "@opsimathically/whatis": "^1.0.1"
+    "@opsimathically/garbage": "^1.0.1",
+    "@opsimathically/whatis": "^1.0.1",
+    "fast-equals": "^5.2.2"
   }
 }
