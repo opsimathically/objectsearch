@@ -5,14 +5,20 @@ import test from 'node:test';
 import assert from 'node:assert';
 
 import { deepEqual } from 'fast-equals';
-import { whatis, whatis_matches_t } from '@opsimathically/whatis';
+import {
+  whatis,
+  whatis_matches_t,
+  add_match_set_func_t,
+  whatis_plugin_t
+} from '@opsimathically/whatis';
 import { generateRandomGarbage } from '@opsimathically/garbage';
 import {
   ObjectSearch,
   path_t,
   path_elem_t,
   on_key_params_t,
-  on_val_params_t
+  on_val_params_t,
+  objsearch_whatis_extra_data_t
 } from '@src/ObjectSearch.class';
 
 import { ObjectSearchUtils } from '@src/ObjectSearchUtils.class';
@@ -558,19 +564,23 @@ import { ObjectSearchUtils } from '@src/ObjectSearchUtils.class';
   test('Use ObjectSearchUtils to search for whatis codes.', async function () {
     // create a basic whatis plugin to create a type for one of
     // our test maps.
-    const plugin = function (params: {
-      value: any;
-      matchset: whatis_matches_t;
-      addToMatchSet: any;
-    }) {
-      if (!params.matchset.codes.map) return;
-      if (!deepEqual(params.value, new Map([['hi', 'whats up']]))) return;
-      params.addToMatchSet(params.matchset, {
-        code: 'hi_whatsup_map',
-        type: 'object',
-        description: 'Map test type.'
-      });
-    };
+    const plugin: whatis_plugin_t<objsearch_whatis_extra_data_t> =
+      function (params: {
+        value: any;
+        matchset: whatis_matches_t;
+        addToMatchSet: add_match_set_func_t;
+        extra?: objsearch_whatis_extra_data_t;
+      }) {
+        if (!params.matchset.codes.map) return;
+        if (!deepEqual(params.value, new Map([['hi', 'whats up']]))) return;
+        params.addToMatchSet(params.matchset, {
+          code: 'hi_whatsup_map',
+          type: 'object',
+          description: 'Map test type.'
+        });
+      };
+
+    // objsearch_whatis_extra_data_t
 
     const objsearch_utils = new ObjectSearchUtils(search_this, {
       whatis_plugins: [plugin]

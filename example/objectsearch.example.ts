@@ -12,9 +12,10 @@ import {
   on_key_params_t,
   on_val_params_t,
   simple_path_t,
-  whatis_matches_t
+  objsearch_whatis_extra_data_t
 } from '@src/index';
 
+import { whatis_plugin_t, whatis_matches_t } from '@opsimathically/whatis';
 import { inspect } from 'node:util';
 
 (async function () {
@@ -34,10 +35,107 @@ import { inspect } from 'node:util';
     */
 
   // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  // %%% Basic Usage: String Searching %%%%%%%%%%%%%%%%%%%%%%%
+  // %%% Whatis Plugin(s) Definition %%%%%%%%%%%%%%%%%%%%%%%%%
   // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  // this is the object we'll be searching for our examples
+  // create a whatis plugin that looks for strings that start with
+  // "http", mark them with the code "potential_http_url"
+  const httpstring_plugin: whatis_plugin_t<objsearch_whatis_extra_data_t> =
+    function (params: {
+      value: any;
+      matchset: whatis_matches_t;
+      addToMatchSet: any;
+      extra?: objsearch_whatis_extra_data_t;
+    }) {
+      // objsearch passed through extra data as it's own type which includes
+      // data from it's current position in it's recursion state.  We cast it
+      // here so that it can be used by type.
+      /*
+    type objsearch_whatis_extra_data_t = {
+        objsearch_ref: ObjectSearch;
+        seen: WeakSet<any>;
+        path: path_elem_t[];
+        parent: unknown;
+        obj: unknown;
+        initial_obj: unknown;
+    }
+    */
+      params.extra = params.extra as objsearch_whatis_extra_data_t;
+
+      // if it's not a string, and doesn't start with http, just return
+      if (!params.matchset.codes.string) return;
+      if (params.value.indexOf('http') !== 0) return;
+
+      // if our criteria is met, add the match set
+      params.addToMatchSet(params.matchset, {
+        code: 'potential_http_url',
+        type: 'string',
+        description: 'String that starts with http, maybe a URL.'
+      });
+    };
+
+  // Detects if a map key is an object.
+  const map_key_is_function_plugin = function (params: {
+    value: any;
+    matchset: whatis_matches_t;
+    addToMatchSet: any;
+  }) {
+    // if it's not a string, and doesn't start with http, just return
+    if (!params.matchset.codes.string) return;
+    if (params.value.indexOf('http') !== 0) return;
+
+    // if our criteria is met, add the match set
+    params.addToMatchSet(params.matchset, {
+      code: 'potential_http_url',
+      type: 'string',
+      description: 'String that starts with http, maybe a URL.'
+    });
+  };
+  // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  // %%% Complex Data Definition %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  // Below we create an object, with a complex and unusual
+  // layout.  Functions for map keys, objects for map keys, symbols
+  // and circular references, etc. This is the data we'll be
+  // searching.
+
+  const external_obj: any = {
+    something_external: 'moo',
+    [Symbol('nested_symbol_obj')]: {
+      symsome: 'symstring',
+      symhello: 'symthere',
+      testsymmap: new Map([['hi', 'whats up']])
+    }
+  };
+  external_obj.circular_ref = external_obj;
+  const complex_search_target: any = {
+    foo: {
+      bar: new Map<any, any>([
+        [{ baz: 1 }, new Set([2, 3])],
+        [function () {}, { async_func_inner: async function () {} }]
+      ]),
+      settest: new Set([5, 6]),
+      nested: {
+        something: 'here',
+        nested_circular: {
+          external_circular: external_obj
+        }
+      }
+    },
+    [Symbol('hidden')]: 'some_symbol_val',
+    7: 8,
+    9: new Map<any, any>([[10, 11]])
+  };
+
+  // Run a string search using a string literal and a regexp.
+  const objsearch_utils = new ObjectSearchUtils(complex_search_target);
+
+  // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  // %%% String Searching %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  // this is the object we'll be searching for our string examples
   const simple_searchable_obj = {
     hello: {
       there: {
@@ -51,7 +149,7 @@ import { inspect } from 'node:util';
   const matching_string_vals: string[] = [];
 
   // Run a string search using a string literal and a regexp.
-  const objsearch_utils = new ObjectSearchUtils(simple_searchable_obj);
+  objsearch_utils.resetSearchData(simple_searchable_obj);
   await objsearch_utils.searchStrings(['hello', /how are you/], {
     key: async function (
       // the matched search term: 'hello' or /how are you/ (regexp)
@@ -205,38 +303,15 @@ import { inspect } from 'node:util';
     also: 'https://www.otherthing.com'
   };
 
-  // create a whatis plugin that looks for strings that start with
-  // "http", mark them with the code "potential_http_url"
-  const httpstring_plugin = function (params: {
-    value: any;
-    matchset: whatis_matches_t;
-    addToMatchSet: any;
-  }) {
-    // if it's not a string, and doesn't start with http, just return
-    if (!params.matchset.codes.string) return;
-    if (params.value.indexOf('http') !== 0) return;
-
-    // if our criteria is met, add the match set
-    params.addToMatchSet(params.matchset, {
-      code: 'potential_http_url',
-      type: 'string',
-      description: 'String that starts with http, maybe a URL.'
-    });
-  };
-
   // create another search utils using the plugin
-  const objsearch_utils_whatis = new ObjectSearchUtils(
-    some_other_object_to_search,
-    {
-      whatis_plugins: [httpstring_plugin]
-    }
-  );
+  objsearch_utils.resetSearchData(some_other_object_to_search);
+  objsearch_utils.resetWhatisPlugins([httpstring_plugin]);
 
   // this will just aggregate things that match our custom whatis code
   const potential_urls: string[] = [];
 
   // search by whatis code (will match on our plugin custom code)
-  await objsearch_utils_whatis.searchWhatisCodes(['potential_http_url'], {
+  await objsearch_utils.searchWhatisCodes(['potential_http_url'], {
     key: async function (term: any, matched: any, info: on_key_params_t) {
       if (!info.whatis.key.codes[term]) return;
       potential_urls.push(matched);
@@ -256,4 +331,8 @@ import { inspect } from 'node:util';
     'https://www.otherthing.com'
   ]
   */
+
+  console.log(
+    'Example finished running!  Look at the code to see how we got here.'
+  );
 })();

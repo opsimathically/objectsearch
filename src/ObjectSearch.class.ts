@@ -2,7 +2,12 @@
 /* eslint-disable @typescript-eslint/no-this-alias */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { whatis } from '@opsimathically/whatis';
+import {
+  whatis,
+  whatis_matches_t,
+  add_match_set_func_t,
+  whatis_plugin_t
+} from '@opsimathically/whatis';
 
 type path_context_t =
   | 'array_index'
@@ -21,6 +26,15 @@ type path_t = path_elem_t[];
 
 type simple_path_elem_t = string | number;
 type simple_path_t = simple_path_elem_t[];
+
+type objsearch_whatis_extra_data_t = {
+  objsearch_ref: ObjectSearch;
+  seen: WeakSet<any>;
+  path: path_elem_t[];
+  parent: unknown;
+  obj: unknown;
+  initial_obj: unknown;
+};
 
 type on_key_params_t = {
   objsearch_ref: ObjectSearch;
@@ -63,7 +77,14 @@ type objsearch_run_result_t = {
 };
 
 class ObjectSearch {
+  // plugins fed to whatis() to determine custom types/metadata etc.
   whatis_plugins: any[] = [];
+
+  // if a whatis plugin wants to preserve some data it can do so
+  // here.  This is just for the purpose of giving the ability to
+  // devs to write to a centralized object when adding plugins.
+  whatis_extra: any = {};
+
   constructor(options?: { whatis_plugins: any[] }) {
     if (options) this.whatis_plugins = options?.whatis_plugins;
   }
@@ -539,14 +560,24 @@ class ObjectSearch {
     if (seen.has(obj)) return true;
     seen.add(obj);
 
+    // this is the extra data parameter passed through to whatis
+    const whatis_extra_data = {
+      objsearch_ref,
+      seen,
+      path,
+      parent,
+      obj,
+      initial_obj
+    };
+
     if (Array.isArray(obj)) {
       for (let i = 0; i < obj.length; i++) {
         const value = obj[i];
 
         const whatis_set = {
-          key: whatis(i, objsearch_ref.whatis_plugins),
-          value: whatis(value, objsearch_ref.whatis_plugins),
-          parent: whatis(obj, objsearch_ref.whatis_plugins)
+          key: whatis(i, objsearch_ref.whatis_plugins, whatis_extra_data),
+          value: whatis(value, objsearch_ref.whatis_plugins, whatis_extra_data),
+          parent: whatis(obj, objsearch_ref.whatis_plugins, whatis_extra_data)
         };
 
         const key_result = await on_key({
@@ -618,9 +649,13 @@ class ObjectSearch {
       if (can_get_values)
         for (const [key, value] of obj.entries()) {
           const whatis_set = {
-            key: whatis(key, objsearch_ref.whatis_plugins),
-            value: whatis(value, objsearch_ref.whatis_plugins),
-            parent: whatis(obj, objsearch_ref.whatis_plugins)
+            key: whatis(key, objsearch_ref.whatis_plugins, whatis_extra_data),
+            value: whatis(
+              value,
+              objsearch_ref.whatis_plugins,
+              whatis_extra_data
+            ),
+            parent: whatis(obj, objsearch_ref.whatis_plugins, whatis_extra_data)
           };
 
           const key_result = await on_key({
@@ -629,9 +664,17 @@ class ObjectSearch {
             key: key,
             value,
             whatis: {
-              key: whatis(key, objsearch_ref.whatis_plugins),
-              value: whatis(value, objsearch_ref.whatis_plugins),
-              parent: whatis(parent, objsearch_ref.whatis_plugins)
+              key: whatis(key, objsearch_ref.whatis_plugins, whatis_extra_data),
+              value: whatis(
+                value,
+                objsearch_ref.whatis_plugins,
+                whatis_extra_data
+              ),
+              parent: whatis(
+                parent,
+                objsearch_ref.whatis_plugins,
+                whatis_extra_data
+              )
             },
             path_elem: {
               parent: obj,
@@ -667,9 +710,17 @@ class ObjectSearch {
             key: key,
             value,
             whatis: {
-              key: whatis(key, objsearch_ref.whatis_plugins),
-              value: whatis(value, objsearch_ref.whatis_plugins),
-              parent: whatis(parent, objsearch_ref.whatis_plugins)
+              key: whatis(key, objsearch_ref.whatis_plugins, whatis_extra_data),
+              value: whatis(
+                value,
+                objsearch_ref.whatis_plugins,
+                whatis_extra_data
+              ),
+              parent: whatis(
+                parent,
+                objsearch_ref.whatis_plugins,
+                whatis_extra_data
+              )
             },
             path_elem: {
               parent: obj,
@@ -717,9 +768,13 @@ class ObjectSearch {
       if (can_get_values)
         for (const value of obj.values()) {
           const whatis_set = {
-            key: whatis(index, objsearch_ref.whatis_plugins),
-            value: whatis(value, objsearch_ref.whatis_plugins),
-            parent: whatis(obj, objsearch_ref.whatis_plugins)
+            key: whatis(index, objsearch_ref.whatis_plugins, whatis_extra_data),
+            value: whatis(
+              value,
+              objsearch_ref.whatis_plugins,
+              whatis_extra_data
+            ),
+            parent: whatis(obj, objsearch_ref.whatis_plugins, whatis_extra_data)
           };
           const val_result = await on_value({
             objsearch_ref,
@@ -727,9 +782,21 @@ class ObjectSearch {
             key: index,
             value,
             whatis: {
-              key: whatis(index, objsearch_ref.whatis_plugins),
-              value: whatis(value, objsearch_ref.whatis_plugins),
-              parent: whatis(parent, objsearch_ref.whatis_plugins)
+              key: whatis(
+                index,
+                objsearch_ref.whatis_plugins,
+                whatis_extra_data
+              ),
+              value: whatis(
+                value,
+                objsearch_ref.whatis_plugins,
+                whatis_extra_data
+              ),
+              parent: whatis(
+                parent,
+                objsearch_ref.whatis_plugins,
+                whatis_extra_data
+              )
             },
             path_elem: {
               parent: obj,
@@ -769,9 +836,9 @@ class ObjectSearch {
     for (const key of keys_only) {
       const value = (obj as any)[key];
       const whatis_set = {
-        key: whatis(key, objsearch_ref.whatis_plugins),
-        value: whatis(value, objsearch_ref.whatis_plugins),
-        parent: whatis(obj, objsearch_ref.whatis_plugins)
+        key: whatis(key, objsearch_ref.whatis_plugins, whatis_extra_data),
+        value: whatis(value, objsearch_ref.whatis_plugins, whatis_extra_data),
+        parent: whatis(obj, objsearch_ref.whatis_plugins, whatis_extra_data)
       };
       const key_result = await on_key({
         objsearch_ref,
@@ -779,9 +846,13 @@ class ObjectSearch {
         key: key,
         value,
         whatis: {
-          key: whatis(key, objsearch_ref.whatis_plugins),
-          value: whatis(value, objsearch_ref.whatis_plugins),
-          parent: whatis(parent, objsearch_ref.whatis_plugins)
+          key: whatis(key, objsearch_ref.whatis_plugins, whatis_extra_data),
+          value: whatis(value, objsearch_ref.whatis_plugins, whatis_extra_data),
+          parent: whatis(
+            parent,
+            objsearch_ref.whatis_plugins,
+            whatis_extra_data
+          )
         },
         path_elem: {
           parent: obj,
@@ -802,9 +873,13 @@ class ObjectSearch {
         key: key,
         value,
         whatis: {
-          key: whatis(key, objsearch_ref.whatis_plugins),
-          value: whatis(value, objsearch_ref.whatis_plugins),
-          parent: whatis(parent, objsearch_ref.whatis_plugins)
+          key: whatis(key, objsearch_ref.whatis_plugins, whatis_extra_data),
+          value: whatis(value, objsearch_ref.whatis_plugins, whatis_extra_data),
+          parent: whatis(
+            parent,
+            objsearch_ref.whatis_plugins,
+            whatis_extra_data
+          )
         },
         path_elem: {
           parent: obj,
@@ -840,9 +915,9 @@ class ObjectSearch {
     for (const key of symbols_only) {
       const value = (obj as any)[key];
       const whatis_set = {
-        key: whatis(key, objsearch_ref.whatis_plugins),
-        value: whatis(value, objsearch_ref.whatis_plugins),
-        parent: whatis(obj, objsearch_ref.whatis_plugins)
+        key: whatis(key, objsearch_ref.whatis_plugins, whatis_extra_data),
+        value: whatis(value, objsearch_ref.whatis_plugins, whatis_extra_data),
+        parent: whatis(obj, objsearch_ref.whatis_plugins, whatis_extra_data)
       };
       const key_result = await on_key({
         objsearch_ref,
@@ -850,9 +925,13 @@ class ObjectSearch {
         key: key,
         value,
         whatis: {
-          key: whatis(key, objsearch_ref.whatis_plugins),
-          value: whatis(value, objsearch_ref.whatis_plugins),
-          parent: whatis(parent, objsearch_ref.whatis_plugins)
+          key: whatis(key, objsearch_ref.whatis_plugins, whatis_extra_data),
+          value: whatis(value, objsearch_ref.whatis_plugins, whatis_extra_data),
+          parent: whatis(
+            parent,
+            objsearch_ref.whatis_plugins,
+            whatis_extra_data
+          )
         },
         path_elem: {
           parent: obj,
@@ -873,9 +952,13 @@ class ObjectSearch {
         key: key,
         value,
         whatis: {
-          key: whatis(key, objsearch_ref.whatis_plugins),
-          value: whatis(value, objsearch_ref.whatis_plugins),
-          parent: whatis(parent, objsearch_ref.whatis_plugins)
+          key: whatis(key, objsearch_ref.whatis_plugins, whatis_extra_data),
+          value: whatis(value, objsearch_ref.whatis_plugins, whatis_extra_data),
+          parent: whatis(
+            parent,
+            objsearch_ref.whatis_plugins,
+            whatis_extra_data
+          )
         },
         path_elem: {
           parent: obj,
@@ -918,5 +1001,6 @@ export {
   simple_path_t,
   on_key_params_t,
   on_val_params_t,
-  objsearch_run_result_t
+  objsearch_run_result_t,
+  objsearch_whatis_extra_data_t
 };

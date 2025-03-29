@@ -25,6 +25,35 @@ class ObjectSearchUtils {
     this.search_this = search_this;
   }
 
+  // reset search data
+  async resetSearchData(data: any) {
+    this.search_this = data;
+    return true;
+  }
+  async resetWhatisPlugins(whatis_plugins: any[]) {
+    this.whatis_plugins = whatis_plugins;
+    return true;
+  }
+
+  async search(cbs: { key?: any; val?: any }) {
+    const objsearch_utils_ref = this;
+    const objsearch = new ObjectSearch({
+      whatis_plugins: objsearch_utils_ref.whatis_plugins
+    });
+    await objsearch.run({
+      object_to_search: objsearch_utils_ref.search_this,
+      on_key: async function (info: on_key_params_t) {
+        if (!cbs?.key) return;
+        return await cbs.key(info.key, info, objsearch);
+      },
+      on_val: async function (info: on_val_params_t) {
+        if (!cbs?.val) return;
+        return await cbs.val(info.value, info, objsearch);
+      }
+    });
+    return true;
+  }
+
   /**
    * Search for strings, using either direct string matching, or regular expression terms.
    */

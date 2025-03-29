@@ -8,7 +8,8 @@ import {
   simple_path_t,
   on_key_params_t,
   on_val_params_t,
-  objsearch_run_result_t
+  objsearch_run_result_t,
+  objsearch_whatis_extra_data_t
 } from '@src/ObjectSearch.class';
 
 import { whatis_matches_t } from '@opsimathically/whatis';
@@ -23,5 +24,6 @@ export {
   on_key_params_t,
   on_val_params_t,
   objsearch_run_result_t,
-  whatis_matches_t
+  whatis_matches_t,
+  objsearch_whatis_extra_data_t
 };

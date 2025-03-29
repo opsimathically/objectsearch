@@ -38,7 +38,7 @@
   "license": "MIT",
   "dependencies": {
     "@opsimathically/garbage": "^1.0.1",
-    "@opsimathically/whatis": "^1.0.1",
+    "@opsimathically/whatis": "^1.0.7",
     "fast-equals": "^5.2.2"
   }
 }
