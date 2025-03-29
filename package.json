@@ -1,6 +1,6 @@
 {
   "name": "@opsimathically/objectsearch",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Recursively searches through runtime objects for keys and values, returning paths to found data. Supports a variety of search functionality, and is very useful for analyzing runtime data.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

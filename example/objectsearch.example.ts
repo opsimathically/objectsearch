@@ -16,7 +16,6 @@ import {
 } from '@src/index';
 
 import { whatis_plugin_t, whatis_matches_t } from '@opsimathically/whatis';
-import { inspect } from 'node:util';
 
 (async function () {
   /*
@@ -132,7 +131,31 @@ import { inspect } from 'node:util';
   const objsearch_utils = new ObjectSearchUtils(complex_search_target);
 
   // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  // %%% String Searching %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  // %%% Search Everything, No Filtering %%%%%%%%%%%%%%%%%%%%%
+  // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  await objsearch_utils.search({
+    key: async function (
+      key: any,
+      info: on_key_params_t,
+      objsearch: ObjectSearch
+    ) {
+      // Will trigger on every key-like, of any type, and it's
+      // up to you to work out what you want to do, with the information
+      // and pathing you've been provided.
+    },
+    val: async function (
+      val: any,
+      info: on_key_params_t,
+      objsearch: ObjectSearch
+    ) {
+      // will trigger on every value, same as on key.  Do what you want,
+      // how you want on what is encountered.
+    }
+  });
+
+  // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  // %%% String-Only Searching %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   // this is the object we'll be searching for our string examples
